@@ -1,19 +1,47 @@
 package storage
 
-import "github.com/clintjedwards/go/models"
+import (
+	"bytes"
+	"encoding/binary"
 
-func (db *BoltDB) GetLink(shortURL string) (*models.Link, error) {
+	"github.com/boltdb/bolt"
+	"github.com/clintjedwards/go/models"
+)
 
-	return nil, nil
-}
+// func (db *BoltDB) GetLink(shortURL string) (*models.Link, error) {
+
+// 	return nil, nil
+// }
 
 // func (db *BoltDB) GetAllLinks() () {
 
 // }
+// func (db *BoltDB) AddJob(account string, newJob *api.Job) (key string, err error) {
 
-// func (db *BoltDB) CreateLink() () {
+// CreateLink generates link hash and stores into database
+func (db *BoltDB) CreateLink(link *models.Link) error {
+	err := db.store.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(linksBucket))
 
-// }
+		buf := &bytes.Buffer{}
+		err := binary.Write(buf, binary.BigEndian, link)
+		if err != nil {
+			return err
+		}
+
+		err = bucket.Put([]byte(link.OriginalURL), buf.Bytes())
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // func (db *BoltDB) UpdateLink() () {
 

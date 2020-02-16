@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/clintjedwards/go/models"
 	"go.uber.org/zap"
@@ -30,16 +31,39 @@ func createLink(w http.ResponseWriter, req *http.Request) {
 
 	err := parseJSON(req.Body, &newLink)
 	if err != nil {
-		zap.S()
-		//sendResponse(w, http.StatusBadRequest, errJSONParseFailure.Error(), true)
+		zap.S().Warnw("could not parse json", "error", err)
+		sendJSONResponse(w, http.StatusBadRequest, err)
 		return
 	}
 	req.Body.Close()
 
-	err := sendJSONResponse(w, http.StatusOK, l)
+	err = sendJSONResponse(w, http.StatusOK, newLink)
 	if err != nil {
-		sendJSONResponse(w, http.StatusBadGateway, "houston we have a problem")
+		zap.S().Errorw("could not send JSON response", "error", err)
+		sendJSONResponse(w, http.StatusBadGateway, err)
 		return
+	}
+
+	zap.S().Warnw("created new link", "link", newLink)
+}
+
+func validateLink(link models.Link) error {
+	rawURL, err := url.Parse(link.OriginalURL)
+	if err != nil {
+		zap.S().Infow("could not parse URL", "error", err, "url", link.OriginalURL)
+		return err
+	}
+
+	switch rawURL.Scheme {
+	case "http", "https", "mailto", "ftp":
+		break
+	default:
+		zap.S().Infow("invalid url scheme", "error", err, "scheme", rawURL.Scheme)
+		return errors.New("invalid URL scheme")
+	}
+
+	if r.Host == rawURL.Host {
+		return errRedirectLoop
 	}
 }
 
