@@ -24,16 +24,8 @@ func main() {
 	router := mux.NewRouter()
 
 	router.Handle("/create", handlers.MethodHandler{
-		"POST": http.HandlerFunc(listLinks),
+		"POST": http.HandlerFunc(),
 	})
-
-	// router.Handle("/links", handlers.MethodHandler{
-	// 	"GET": http.HandlerFunc(listLinks),
-	// })
-
-	// router.Handle("/links", handlers.MethodHandler{
-	// 	"GET": http.HandlerFunc(listLinks),
-	// })
 
 	server := http.Server{
 		Addr:         "127.0.0.1:8080",

@@ -18,7 +18,7 @@ import (
 // }
 // func (db *BoltDB) AddJob(account string, newJob *api.Job) (key string, err error) {
 
-// CreateLink generates link hash and stores into database
+// CreateLink stores a new link into database
 func (db *BoltDB) CreateLink(link *models.Link) error {
 	err := db.store.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(linksBucket))
@@ -29,7 +29,7 @@ func (db *BoltDB) CreateLink(link *models.Link) error {
 			return err
 		}
 
-		err = bucket.Put([]byte(link.OriginalURL), buf.Bytes())
+		err = bucket.Put([]byte(link.Name), buf.Bytes())
 		if err != nil {
 			return err
 		}
