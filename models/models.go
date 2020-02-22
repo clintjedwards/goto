@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"net/url"
 	"regexp"
 
 	validation "github.com/go-ozzo/ozzo-validation"
@@ -17,7 +18,7 @@ type Link struct {
 }
 
 // Validate checks URL and Name to make sure they are valid and conform to standards
-func (link Link) Validate(maxlength int) error {
+func (link Link) Validate(maxlength int, serverHost string) error {
 	err := validation.ValidateStruct(&link,
 		// URL must not be empty and a valid URL
 		validation.Field(&link.URL, validation.Required, is.URL),
@@ -27,6 +28,11 @@ func (link Link) Validate(maxlength int) error {
 	)
 	if err != nil {
 		return err
+	}
+
+	url, _ := url.Parse(link.URL)
+	if serverHost == url.Host {
+		return errors.New("redirect loop detected")
 	}
 
 	return nil

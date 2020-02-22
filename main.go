@@ -21,10 +21,15 @@ func init() {
 }
 
 func main() {
+	app := newApp()
 	router := mux.NewRouter()
 
+	router.Handle("/links", handlers.MethodHandler{
+		"GET": http.HandlerFunc(app.listLinksHandler),
+	})
+
 	router.Handle("/create", handlers.MethodHandler{
-		"POST": http.HandlerFunc(),
+		"POST": http.HandlerFunc(app.createLinkHandler),
 	})
 
 	server := http.Server{

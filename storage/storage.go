@@ -30,6 +30,16 @@ func NewBoltDB(path string) (BoltDB, error) {
 		return BoltDB{}, err
 	}
 
+	// Create root bucket if not exists
+	err = store.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(linksBucket))
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	db.store = store
 
 	return db, nil

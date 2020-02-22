@@ -1,35 +1,48 @@
 package storage
 
 import (
-	"bytes"
-	"encoding/binary"
+	"encoding/json"
 
 	"github.com/boltdb/bolt"
 	"github.com/clintjedwards/go/models"
 )
 
-// func (db *BoltDB) GetLink(shortURL string) (*models.Link, error) {
+// GetAllLinks returns an unpaginated list of current links
+func (db *BoltDB) GetAllLinks() (map[string]models.Link, error) {
 
-// 	return nil, nil
-// }
+	results := map[string]models.Link{}
 
-// func (db *BoltDB) GetAllLinks() () {
+	db.store.View(func(tx *bolt.Tx) error {
+		linksBucket := tx.Bucket([]byte(linksBucket))
 
-// }
-// func (db *BoltDB) AddJob(account string, newJob *api.Job) (key string, err error) {
+		err := linksBucket.ForEach(func(key, value []byte) error {
+			var link models.Link
+
+			err := json.Unmarshal(value, &link)
+			if err != nil {
+				return err
+			}
+
+			results[string(key)] = link
+			return nil
+		})
+		return err
+	})
+
+	return results, nil
+}
 
 // CreateLink stores a new link into database
-func (db *BoltDB) CreateLink(link *models.Link) error {
+func (db *BoltDB) CreateLink(link models.Link) error {
 	err := db.store.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(linksBucket))
 
-		buf := &bytes.Buffer{}
-		err := binary.Write(buf, binary.BigEndian, link)
+		encodedLink, err := json.Marshal(link)
 		if err != nil {
 			return err
 		}
 
-		err = bucket.Put([]byte(link.Name), buf.Bytes())
+		err = bucket.Put([]byte(link.Name), encodedLink)
 		if err != nil {
 			return err
 		}
