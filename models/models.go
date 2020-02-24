@@ -42,10 +42,18 @@ func (link Link) Validate(maxlength int, serverHost string) error {
 // a name can only comprise of AlphaNumeric characters and + or _
 func checkValidName(value interface{}) error {
 
+	bannedNames := []string{"links", "create", "version", "status", "health", "edit", "api"}
+
 	s, _ := value.(string)
 	nameRegEx := regexp.MustCompile("^[a-zA-Z0-9_-]+$")
 	if !nameRegEx.MatchString(s) {
 		return errors.New("name is restricted to alphanumeric characters, dashes, and underscores only")
+	}
+
+	for _, name := range bannedNames {
+		if s == name {
+			return errors.New("requested name is not allowed")
+		}
 	}
 
 	return nil

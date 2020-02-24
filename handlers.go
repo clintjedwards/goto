@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/clintjedwards/go/models"
+	"github.com/clintjedwards/toolkit/tkerrors"
+	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
@@ -16,7 +18,7 @@ func (app *app) listLinksHandler(w http.ResponseWriter, req *http.Request) {
 	links, err := app.storage.GetAllLinks()
 	if err != nil {
 		zap.S().Errorw("error in retrieving links", "error", err)
-		sendJSONResponse(w, http.StatusBadGateway, err)
+		sendJSONErrResponse(w, http.StatusBadGateway, err)
 		return
 	}
 
@@ -30,7 +32,7 @@ func (app *app) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 	err := parseJSON(req.Body, &newLink)
 	if err != nil {
 		zap.S().Warnw("could not parse json", "error", err)
-		sendJSONResponse(w, http.StatusBadRequest, err)
+		sendJSONErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 	req.Body.Close()
@@ -38,16 +40,34 @@ func (app *app) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 	err = newLink.Validate(app.config.MaxNameLength, req.Host)
 	if err != nil {
 		zap.S().Errorw("name or url invalid", "error", err)
-		sendJSONResponse(w, http.StatusBadRequest, err)
+		sendJSONErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
 	newLink.Created = time.Now().Unix()
+	newLink.Hits = 0
 
 	app.storage.CreateLink(newLink)
 
 	zap.S().Infow("created new link", "link", newLink)
 	sendJSONResponse(w, http.StatusCreated, newLink)
+}
+
+func (app *app) getLinkHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	link, err := app.storage.GetLink(vars["name"])
+	if errors.Is(err, tkerrors.ErrEntityNotFound) {
+		zap.S().Warnw("link not found", "error", err)
+		sendJSONErrResponse(w, http.StatusNotFound, err)
+		return
+	}
+	if err != nil {
+		zap.S().Warnw("error retrieving link", "error", err)
+		sendJSONErrResponse(w, http.StatusBadGateway, err)
+		return
+	}
+
+	http.Redirect(w, req, link.URL, http.StatusMovedPermanently)
 }
 
 // sendJSONResponse converts raw objects and parameters to a json response and passes it to a provided writer
@@ -56,6 +76,17 @@ func sendJSONResponse(w http.ResponseWriter, httpStatusCode int, payload interfa
 
 	enc := json.NewEncoder(w)
 	err := enc.Encode(payload)
+	if err != nil {
+		zap.S().Errorw("could not send JSON response", "error", err)
+	}
+}
+
+// sendJSONErrResponse converts raw objects and parameters to a json response and passes it to a provided writer
+func sendJSONErrResponse(w http.ResponseWriter, httpStatusCode int, errStr error) {
+	w.WriteHeader(httpStatusCode)
+
+	enc := json.NewEncoder(w)
+	err := enc.Encode(map[string]string{"err": errStr.Error()})
 	if err != nil {
 		zap.S().Errorw("could not send JSON response", "error", err)
 	}

@@ -5,7 +5,35 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/clintjedwards/go/models"
+	"github.com/clintjedwards/toolkit/tkerrors"
 )
+
+// GetLink returns a link by short name
+func (db *BoltDB) GetLink(name string) (models.Link, error) {
+
+	storedLink := models.Link{}
+
+	err := db.store.View(func(tx *bolt.Tx) error {
+		linksBucket := tx.Bucket([]byte(linksBucket))
+
+		linkRaw := linksBucket.Get([]byte(name))
+		if linkRaw == nil {
+			return tkerrors.ErrEntityNotFound
+		}
+
+		err := json.Unmarshal(linkRaw, &storedLink)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return models.Link{}, err
+	}
+
+	return storedLink, nil
+}
 
 // GetAllLinks returns an unpaginated list of current links
 func (db *BoltDB) GetAllLinks() (map[string]models.Link, error) {

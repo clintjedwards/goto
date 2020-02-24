@@ -32,6 +32,10 @@ func main() {
 		"POST": http.HandlerFunc(app.createLinkHandler),
 	})
 
+	router.Handle("/{name}", handlers.MethodHandler{
+		"GET": http.HandlerFunc(app.getLinkHandler),
+	})
+
 	server := http.Server{
 		Addr:         "127.0.0.1:8080",
 		Handler:      router,
