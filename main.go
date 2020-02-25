@@ -28,12 +28,17 @@ func main() {
 		"GET": http.HandlerFunc(app.listLinksHandler),
 	})
 
+	router.Handle("/links/{name}", handlers.MethodHandler{
+		"GET":    http.HandlerFunc(app.getLinkHandler),
+		"DELETE": http.HandlerFunc(app.deleteLinksHandler),
+	})
+
 	router.Handle("/create", handlers.MethodHandler{
 		"POST": http.HandlerFunc(app.createLinkHandler),
 	})
 
 	router.Handle("/{name}", handlers.MethodHandler{
-		"GET": http.HandlerFunc(app.getLinkHandler),
+		"GET": http.HandlerFunc(app.followLinkHandler),
 	})
 
 	server := http.Server{

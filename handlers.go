@@ -47,27 +47,72 @@ func (app *app) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 	newLink.Created = time.Now().Unix()
 	newLink.Hits = 0
 
-	app.storage.CreateLink(newLink)
+	err = app.storage.CreateLink(newLink)
+	if err != nil {
+		if errors.Is(err, tkerrors.ErrEntityExists) {
+			sendJSONErrResponse(w, http.StatusConflict, err)
+			return
+		}
+		sendJSONErrResponse(w, http.StatusNotFound, err)
+		return
+	}
 
 	zap.S().Infow("created new link", "link", newLink)
 	sendJSONResponse(w, http.StatusCreated, newLink)
 }
 
-func (app *app) getLinkHandler(w http.ResponseWriter, req *http.Request) {
+func (app *app) followLinkHandler(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	link, err := app.storage.GetLink(vars["name"])
-	if errors.Is(err, tkerrors.ErrEntityNotFound) {
-		zap.S().Warnw("link not found", "error", err)
-		sendJSONErrResponse(w, http.StatusNotFound, err)
-		return
-	}
 	if err != nil {
-		zap.S().Warnw("error retrieving link", "error", err)
+		if errors.Is(err, tkerrors.ErrEntityNotFound) {
+			sendJSONErrResponse(w, http.StatusNotFound, err)
+			return
+		}
+		zap.S().Errorw("error retrieving link", "error", err)
 		sendJSONErrResponse(w, http.StatusBadGateway, err)
 		return
 	}
 
+	// We wrap this so we can spit out the error to logs
+	go func() {
+		err := app.storage.BumpHitCount(link.Name)
+		if err != nil {
+			zap.S().Errorw("could not increment hit count", "error", err)
+		}
+	}()
+
 	http.Redirect(w, req, link.URL, http.StatusMovedPermanently)
+}
+
+func (app *app) getLinkHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	link, err := app.storage.GetLink(vars["name"])
+	if err != nil {
+		if errors.Is(err, tkerrors.ErrEntityNotFound) {
+			sendJSONErrResponse(w, http.StatusNotFound, err)
+			return
+		}
+		zap.S().Errorw("error retrieving link", "error", err)
+		sendJSONErrResponse(w, http.StatusBadGateway, err)
+		return
+	}
+
+	sendJSONResponse(w, http.StatusOK, link)
+}
+
+func (app *app) deleteLinksHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+
+	err := app.storage.DeleteLink(vars["name"])
+	if err != nil {
+		zap.S().Errorw("could not delete link", "error", err)
+		sendJSONErrResponse(w, http.StatusBadGateway, err)
+		return
+	}
+
+	zap.S().Infow("deleted link", "name", vars["name"])
+	sendJSONResponse(w, http.StatusOK, nil)
 }
 
 // sendJSONResponse converts raw objects and parameters to a json response and passes it to a provided writer
