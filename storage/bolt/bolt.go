@@ -1,22 +1,56 @@
-package storage
+package bolt
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/boltdb/bolt"
-	"github.com/clintjedwards/go/models"
+	"github.com/clintjedwards/goto/config"
+	"github.com/clintjedwards/goto/models"
+	"github.com/clintjedwards/goto/storage"
 	"github.com/clintjedwards/toolkit/tkerrors"
+	"go.uber.org/zap"
 )
 
+// Bolt is a representation of the bolt datastore
+type Bolt struct {
+	store *bolt.DB
+}
+
+// Init creates a new boltdb with given settings
+func Init(config *config.BoltConfig) (Bolt, error) {
+	db := Bolt{}
+
+	store, err := bolt.Open(config.Path, 0600, &bolt.Options{Timeout: 1 * time.Second})
+	if err != nil {
+		return Bolt{}, err
+	}
+
+	// Create root bucket if not exists
+	err = store.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(storage.LinksBucket))
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	db.store = store
+	zap.S().Infow("connected to bolt db", "path", config.Path)
+
+	return db, nil
+}
+
 // GetLink returns a link by short name
-func (db *BoltDB) GetLink(name string) (models.Link, error) {
+func (db *Bolt) GetLink(id string) (models.Link, error) {
 
 	storedLink := models.Link{}
 
 	err := db.store.View(func(tx *bolt.Tx) error {
-		linksBucket := tx.Bucket([]byte(linksBucket))
+		linksBucket := tx.Bucket([]byte(storage.LinksBucket))
 
-		linkRaw := linksBucket.Get([]byte(name))
+		linkRaw := linksBucket.Get([]byte(id))
 		if linkRaw == nil {
 			return tkerrors.ErrEntityNotFound
 		}
@@ -36,12 +70,12 @@ func (db *BoltDB) GetLink(name string) (models.Link, error) {
 }
 
 // GetAllLinks returns an unpaginated list of current links
-func (db *BoltDB) GetAllLinks() (map[string]models.Link, error) {
+func (db *Bolt) GetAllLinks() (map[string]models.Link, error) {
 
 	results := map[string]models.Link{}
 
 	db.store.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(linksBucket))
+		bucket := tx.Bucket([]byte(storage.LinksBucket))
 
 		err := bucket.ForEach(func(key, value []byte) error {
 			var link models.Link
@@ -61,11 +95,11 @@ func (db *BoltDB) GetAllLinks() (map[string]models.Link, error) {
 }
 
 // CreateLink stores a new link into database
-func (db *BoltDB) CreateLink(link models.Link) error {
+func (db *Bolt) CreateLink(link models.Link) error {
 	err := db.store.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(linksBucket))
+		bucket := tx.Bucket([]byte(storage.LinksBucket))
 
-		exists := bucket.Get([]byte(link.Name))
+		exists := bucket.Get([]byte(link.ID))
 		if exists != nil {
 			return tkerrors.ErrEntityExists
 		}
@@ -75,7 +109,7 @@ func (db *BoltDB) CreateLink(link models.Link) error {
 			return err
 		}
 
-		err = bucket.Put([]byte(link.Name), encodedLink)
+		err = bucket.Put([]byte(link.ID), encodedLink)
 		if err != nil {
 			return err
 		}
@@ -90,13 +124,13 @@ func (db *BoltDB) CreateLink(link models.Link) error {
 }
 
 // BumpHitCount updates the hit number on a certain link
-func (db *BoltDB) BumpHitCount(name string) error {
+func (db *Bolt) BumpHitCount(id string) error {
 	storedLink := models.Link{}
 
 	err := db.store.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(linksBucket))
+		bucket := tx.Bucket([]byte(storage.LinksBucket))
 
-		linkRaw := bucket.Get([]byte(name))
+		linkRaw := bucket.Get([]byte(id))
 		if linkRaw == nil {
 			return tkerrors.ErrEntityNotFound
 		}
@@ -113,7 +147,7 @@ func (db *BoltDB) BumpHitCount(name string) error {
 			return err
 		}
 
-		err = bucket.Put([]byte(name), encodedLink)
+		err = bucket.Put([]byte(id), encodedLink)
 		if err != nil {
 			return err
 		}
@@ -128,11 +162,11 @@ func (db *BoltDB) BumpHitCount(name string) error {
 }
 
 // DeleteLink removes a link from the database
-func (db *BoltDB) DeleteLink(name string) error {
+func (db *Bolt) DeleteLink(id string) error {
 	err := db.store.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(linksBucket))
+		bucket := tx.Bucket([]byte(storage.LinksBucket))
 
-		err := bucket.Delete([]byte(name))
+		err := bucket.Delete([]byte(id))
 		if err != nil {
 			return err
 		}

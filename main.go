@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/clintjedwards/go/config"
+	"github.com/clintjedwards/goto/config"
 	"github.com/clintjedwards/toolkit/logger"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -24,11 +24,16 @@ func main() {
 	app := newApp()
 	router := mux.NewRouter()
 
+	config, err := config.FromEnv()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	router.Handle("/links", handlers.MethodHandler{
 		"GET": http.HandlerFunc(app.listLinksHandler),
 	})
 
-	router.Handle("/links/{name}", handlers.MethodHandler{
+	router.Handle("/links/{id}", handlers.MethodHandler{
 		"GET":    http.HandlerFunc(app.getLinkHandler),
 		"DELETE": http.HandlerFunc(app.deleteLinksHandler),
 	})
@@ -37,16 +42,16 @@ func main() {
 		"POST": http.HandlerFunc(app.createLinkHandler),
 	})
 
-	router.Handle("/{name}", handlers.MethodHandler{
+	router.Handle("/{id}", handlers.MethodHandler{
 		"GET": http.HandlerFunc(app.followLinkHandler),
 	})
 
 	server := http.Server{
-		Addr:         "127.0.0.1:8080",
+		Addr:         config.Host,
 		Handler:      router,
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
 
-	log.Fatal(http.ListenAndServe("127.0.0.1:8080", server.Handler))
+	log.Fatal(http.ListenAndServe(config.Host, server.Handler))
 }

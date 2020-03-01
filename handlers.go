@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/clintjedwards/go/models"
+	"github.com/clintjedwards/goto/models"
 	"github.com/clintjedwards/toolkit/tkerrors"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -37,9 +37,9 @@ func (app *app) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 	}
 	req.Body.Close()
 
-	err = newLink.Validate(app.config.MaxNameLength, req.Host)
+	err = newLink.Validate(app.config.MaxIDLength, req.Host)
 	if err != nil {
-		zap.S().Errorw("name or url invalid", "error", err)
+		zap.S().Errorw("id or url invalid", "error", err)
 		sendJSONErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
@@ -63,7 +63,7 @@ func (app *app) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 
 func (app *app) followLinkHandler(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-	link, err := app.storage.GetLink(vars["name"])
+	link, err := app.storage.GetLink(vars["id"])
 	if err != nil {
 		if errors.Is(err, tkerrors.ErrEntityNotFound) {
 			sendJSONErrResponse(w, http.StatusNotFound, err)
@@ -76,7 +76,7 @@ func (app *app) followLinkHandler(w http.ResponseWriter, req *http.Request) {
 
 	// We wrap this so we can spit out the error to logs
 	go func() {
-		err := app.storage.BumpHitCount(link.Name)
+		err := app.storage.BumpHitCount(link.ID)
 		if err != nil {
 			zap.S().Errorw("could not increment hit count", "error", err)
 		}
@@ -87,7 +87,7 @@ func (app *app) followLinkHandler(w http.ResponseWriter, req *http.Request) {
 
 func (app *app) getLinkHandler(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-	link, err := app.storage.GetLink(vars["name"])
+	link, err := app.storage.GetLink(vars["id"])
 	if err != nil {
 		if errors.Is(err, tkerrors.ErrEntityNotFound) {
 			sendJSONErrResponse(w, http.StatusNotFound, err)
@@ -104,14 +104,14 @@ func (app *app) getLinkHandler(w http.ResponseWriter, req *http.Request) {
 func (app *app) deleteLinksHandler(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 
-	err := app.storage.DeleteLink(vars["name"])
+	err := app.storage.DeleteLink(vars["id"])
 	if err != nil {
 		zap.S().Errorw("could not delete link", "error", err)
 		sendJSONErrResponse(w, http.StatusBadGateway, err)
 		return
 	}
 
-	zap.S().Infow("deleted link", "name", vars["name"])
+	zap.S().Infow("deleted link", "id", vars["id"])
 	sendJSONResponse(w, http.StatusOK, nil)
 }
 

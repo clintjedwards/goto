@@ -1,58 +1,36 @@
 package storage
 
 import (
-	"fmt"
-	"time"
-
-	"github.com/boltdb/bolt"
+	"github.com/clintjedwards/goto/models"
 )
 
 // Bucket represents the name of a section of key/value pairs
-// usually a grouping of like items
+// usually a grouping of some sort
+// ex. A key/value pair of userid-userdata would belong in the users bucket
 type Bucket string
 
 const (
-	// linksBucket is a container for link objects
-	linksBucket Bucket = "links"
+	// LinksBucket represents the container in which shortened links are managed
+	LinksBucket Bucket = "links"
 )
 
-// BoltDB is a representation of the bolt datastore
-type BoltDB struct {
-	store *bolt.DB
-}
+// EngineType represents the different possible storage engines available
+type EngineType string
 
-// NewBoltDB creates a new boltdb with given settings
-func NewBoltDB(path string) (BoltDB, error) {
-	db := BoltDB{}
+const (
+	// BoltEngine represents a bolt storage engine.
+	// A file based key-value store.(https://github.com/boltdb/bolt)
+	BoltEngine EngineType = "bolt"
+	// RedisEngine represents a redis storage engine.
+	// (https://redis.io/)
+	RedisEngine EngineType = "redis"
+)
 
-	store, err := bolt.Open(path, 0600, &bolt.Options{Timeout: 1 * time.Second})
-	if err != nil {
-		return BoltDB{}, err
-	}
-
-	// Create root bucket if not exists
-	err = store.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte(linksBucket))
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	db.store = store
-
-	return db, nil
-}
-
-// createBuckets creates given buckets nested inside another bucket
-func (db *BoltDB) createBuckets(root *bolt.Bucket, buckets ...Bucket) error {
-
-	for _, bucket := range buckets {
-		_, err := root.CreateBucketIfNotExists([]byte(bucket))
-		if err != nil {
-			return fmt.Errorf("could not create bucket: %s; %v", bucket, err)
-		}
-	}
-	return nil
+// Engine represents backend storage implementations where items can be persisted
+type Engine interface {
+	GetAllLinks() (map[string]models.Link, error)
+	GetLink(id string) (models.Link, error)
+	CreateLink(link models.Link) error
+	BumpHitCount(id string) error
+	DeleteLink(id string) error
 }
