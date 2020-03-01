@@ -42,7 +42,7 @@ func (link Link) Validate(maxlength int, serverHost string) error {
 // an ID can only comprise of AlphaNumeric characters and + or _
 func checkValidID(value interface{}) error {
 
-	bannedIDs := []string{"links", "create", "version", "status", "health", "edit", "api"}
+	reservedIDs := []string{"links", "create", "version", "status", "health", "edit", "api"}
 
 	s, _ := value.(string)
 	idRegEx := regexp.MustCompile("^[a-zA-Z0-9_-]+$")
@@ -50,9 +50,9 @@ func checkValidID(value interface{}) error {
 		return errors.New("id is restricted to alphanumeric characters, dashes, and underscores only")
 	}
 
-	for _, id := range bannedIDs {
+	for _, id := range reservedIDs {
 		if s == id {
-			return errors.New("requested id is not allowed")
+			return errors.New("requested id is reserved and cannot be used")
 		}
 	}
 
