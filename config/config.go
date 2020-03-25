@@ -2,6 +2,9 @@ package config
 
 import "github.com/kelseyhightower/envconfig"
 
+// All env vars are prefixed with "goto"
+// example: GOTO_DATABASE_HOST_REDIS
+
 // Config refers to general application configuration
 type Config struct {
 	Debug       bool   `envconfig:"debug" default:"false"`
@@ -38,7 +41,7 @@ type DatabaseConfig struct {
 // FromEnv pulls configration from environment variables
 func FromEnv() (*Config, error) {
 	var config Config
-	err := envconfig.Process("", &config)
+	err := envconfig.Process("goto", &config)
 	if err != nil {
 		return nil, err
 	}
