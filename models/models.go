@@ -38,7 +38,7 @@ func (link Link) Validate(maxlength int, serverHost string) error {
 	return nil
 }
 
-// checkValidID checks for a valid short nmae
+// checkValidID checks for a valid short name
 // an ID can only comprise of AlphaNumeric characters and + or _
 func checkValidID(value interface{}) error {
 

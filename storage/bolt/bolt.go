@@ -35,6 +35,9 @@ func Init(config *config.BoltConfig) (Bolt, error) {
 
 		return nil
 	})
+	if err != nil {
+		return Bolt{}, err
+	}
 
 	db.store = store
 	zap.S().Infow("connected to bolt db", "path", config.Path)
