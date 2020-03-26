@@ -1,0 +1,34 @@
+name: Build Docker containers
+
+# Only build new container on new tags for master branch
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  main:
+    name: Build and push Docker containers
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set tag var
+        run: echo ::set-env name=RELEASE_VERSION::${GITHUB_REF:11}
+
+      - name: Build Docker container for amd64 arch
+        run: docker build --build-arg GOARCH=amd64 --build-arg SEMVER=${{ env.RELEASE_VERSION }} -f docker/Dockerfile . -t clintjedwards/goto:amd64-release-${{ env.RELEASE_VERSION }}
+
+      - name: Build Docker container for arm64 arch
+        run: docker build --build-arg GOARCH=arm64 --build-arg SEMVER=${{ env.RELEASE_VERSION }} -f docker/Dockerfile . -t clintjedwards/goto:arm64-release-${{ env.RELEASE_VERSION }}
+
+      - name: Log into registry
+        run: echo "${{ secrets.DOCKER_KEY}}" | docker login --username=cje3295 --password-stdin
+
+      - name: Push image
+        run: |
+          docker tag clintjedwards/goto:amd64-release-${{ env.RELEASE_VERSION }} cje3295/goto:amd64-release-${{ env.RELEASE_VERSION }}
+          docker tag clintjedwards/goto:arm64-release-${{ env.RELEASE_VERSION }} cje3295/goto:arm64-release-${{ env.RELEASE_VERSION }}
+
+          docker push cje3295/goto:amd64-release-${{ env.RELEASE_VERSION }}
+          docker push cje3295/goto:arm64-release-${{ env.RELEASE_VERSION }}

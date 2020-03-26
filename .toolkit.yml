@@ -1,0 +1,5 @@
+repository: clintjedwards/goto
+commands:
+  build:
+    - go mod tidy
+    - go build -ldflags '-X "main.version={{.VersionFull}}"' -o {{.Path}}
