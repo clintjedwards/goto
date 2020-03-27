@@ -1,0 +1,73 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goto
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: goto
+  template:
+    metadata:
+      labels:
+        app: goto
+    spec:
+      containers:
+        - name: goto
+          image: cje3295/goto:arm64-release-1.0.0
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: GOTO_DEBUG
+              value: "false"
+            - name: GOTO_HOST
+              value: "0.0.0.0:8080"
+            - name: GOTO_DATABASE_ENGINE
+              value: "redis"
+            - name: GOTO_DATABASE_HOST_REDIS
+              value: "redis.clintjedwards.home:6379"
+            - name: GOTO_DATABASE_PASSWORD_REDIS
+              valueFrom:
+                secretKeyRef:
+                  name: goto-database-password-redis
+                  key: goto-database-password-redis
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: goto-service
+spec:
+  selector:
+    app: goto
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: goto-ingress
+spec:
+  rules:
+    - host: go.clintjedwards.home
+      http:
+        paths:
+          - backend:
+              serviceName: goto-service
+              servicePort: 8080
+      # This host entry allows us to just type in experimental/
+      # once DNS search domains are set up for clients
+    - host: go
+      http:
+        paths:
+          - backend:
+              serviceName: goto-service
+              servicePort: 8080
