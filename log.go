@@ -1,12 +1,18 @@
 package main
 
 import (
+	"os"
+
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
-func setupLogging(loglevel string) {
+func setupLogging(loglevel string, pretty bool) {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.SetGlobalLevel(parseLogLevel(loglevel))
+	if pretty {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	}
 }
 
 func parseLogLevel(loglevel string) zerolog.Level {

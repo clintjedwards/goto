@@ -17,7 +17,7 @@ func main() {
 		log.Fatal().Err(err).Msg("could not load env config")
 	}
 
-	setupLogging(config.LogLevel)
+	setupLogging(config.LogLevel, config.Debug)
 
 	app := newApp()
 	router := mux.NewRouter()
