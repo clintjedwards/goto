@@ -9,7 +9,7 @@ import (
 	"github.com/clintjedwards/goto/models"
 	"github.com/clintjedwards/goto/storage"
 	"github.com/clintjedwards/toolkit/tkerrors"
-	"go.uber.org/zap"
+	"github.com/rs/zerolog/log"
 )
 
 // Bolt is a representation of the bolt datastore
@@ -40,7 +40,7 @@ func Init(config *config.BoltConfig) (Bolt, error) {
 	}
 
 	db.store = store
-	zap.S().Infow("connected to bolt db", "path", config.Path)
+	log.Info().Str("path", config.Path).Msg("connected to bolt db")
 
 	return db, nil
 }

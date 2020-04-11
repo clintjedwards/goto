@@ -7,7 +7,7 @@ import (
 	"github.com/clintjedwards/goto/storage"
 	"github.com/clintjedwards/goto/storage/bolt"
 	"github.com/clintjedwards/goto/storage/redis"
-	"go.uber.org/zap"
+	"github.com/rs/zerolog/log"
 )
 
 type app struct {
@@ -19,12 +19,12 @@ func newApp() *app {
 
 	config, err := config.FromEnv()
 	if err != nil {
-		zap.S().Fatalw("could not load config", "error", err)
+		log.Fatal().Err(err).Msg("could not load env config")
 	}
 
 	storage, err := initStorage(storage.EngineType(config.Database.Engine))
 	if err != nil {
-		zap.S().Fatalw("could not configure storage", "error", err)
+		log.Fatal().Err(err).Msg("could not configure storage")
 	}
 
 	return &app{

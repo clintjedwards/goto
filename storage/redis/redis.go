@@ -7,7 +7,7 @@ import (
 	"github.com/clintjedwards/goto/models"
 	"github.com/clintjedwards/toolkit/tkerrors"
 	"github.com/go-redis/redis/v7"
-	"go.uber.org/zap"
+	"github.com/rs/zerolog/log"
 )
 
 // Redis is a representation of the redis datastore
@@ -32,7 +32,7 @@ func Init(config *config.RedisConfig) (Redis, error) {
 	}
 
 	db.store = client
-	zap.S().Infow("connected to redis db", "host", config.Host)
+	log.Info().Str("host", config.Host).Msg("connected toredis")
 
 	return db, nil
 }

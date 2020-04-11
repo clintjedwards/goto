@@ -1,33 +1,26 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/clintjedwards/goto/config"
-	"github.com/clintjedwards/toolkit/logger"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog/log"
 )
 
-func init() {
+func main() {
+
 	config, err := config.FromEnv()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("could not load env config")
 	}
 
-	logger.InitGlobalLogger(config.LogLevel, config.Debug)
-}
+	setupLogging(config.LogLevel)
 
-func main() {
 	app := newApp()
 	router := mux.NewRouter()
-
-	config, err := config.FromEnv()
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	router.Handle("/links", handlers.MethodHandler{
 		"GET": http.HandlerFunc(app.listLinksHandler),
@@ -53,5 +46,5 @@ func main() {
 		ReadTimeout:  15 * time.Second,
 	}
 
-	log.Fatal(http.ListenAndServe(config.Host, server.Handler))
+	log.Fatal().Err(http.ListenAndServe(config.Host, server.Handler))
 }

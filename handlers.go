@@ -4,20 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/clintjedwards/goto/models"
 	"github.com/clintjedwards/toolkit/tkerrors"
 	"github.com/gorilla/mux"
-	"go.uber.org/zap"
+	"github.com/rs/zerolog/log"
 )
 
 func (app *app) listLinksHandler(w http.ResponseWriter, req *http.Request) {
 	links, err := app.storage.GetAllLinks()
 	if err != nil {
-		zap.S().Errorw("error in retrieving links", "error", err)
+		log.Error().Err(err).Msg("error retrieving link ")
 		sendJSONErrResponse(w, http.StatusBadGateway, err)
 		return
 	}
@@ -31,7 +30,7 @@ func (app *app) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 
 	err := parseJSON(req.Body, &newLink)
 	if err != nil {
-		zap.S().Warnw("could not parse json", "error", err)
+		log.Warn().Err(err).Msg("could not parse json")
 		sendJSONErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
@@ -39,7 +38,7 @@ func (app *app) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 
 	err = newLink.Validate(app.config.MaxIDLength, req.Host)
 	if err != nil {
-		zap.S().Errorw("id or url invalid", "error", err)
+		log.Error().Err(err).Msg("id or url invalid")
 		sendJSONErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
@@ -57,7 +56,7 @@ func (app *app) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	zap.S().Infow("created new link", "link", newLink)
+	log.Info().Interface("link", newLink).Msg("created new link")
 	sendJSONResponse(w, http.StatusCreated, newLink)
 }
 
@@ -69,7 +68,7 @@ func (app *app) followLinkHandler(w http.ResponseWriter, req *http.Request) {
 			sendJSONErrResponse(w, http.StatusNotFound, err)
 			return
 		}
-		zap.S().Errorw("error retrieving link", "error", err)
+		log.Error().Err(err).Msg("error retrieving link")
 		sendJSONErrResponse(w, http.StatusBadGateway, err)
 		return
 	}
@@ -78,7 +77,7 @@ func (app *app) followLinkHandler(w http.ResponseWriter, req *http.Request) {
 	go func() {
 		err := app.storage.BumpHitCount(link.ID)
 		if err != nil {
-			zap.S().Errorw("could not increment hit count", "error", err)
+			log.Error().Err(err).Msg("could not increment hit count")
 		}
 	}()
 
@@ -93,7 +92,7 @@ func (app *app) getLinkHandler(w http.ResponseWriter, req *http.Request) {
 			sendJSONErrResponse(w, http.StatusNotFound, err)
 			return
 		}
-		zap.S().Errorw("error retrieving link", "error", err)
+		log.Error().Err(err).Msg("error retrieving link")
 		sendJSONErrResponse(w, http.StatusBadGateway, err)
 		return
 	}
@@ -106,12 +105,12 @@ func (app *app) deleteLinksHandler(w http.ResponseWriter, req *http.Request) {
 
 	err := app.storage.DeleteLink(vars["id"])
 	if err != nil {
-		zap.S().Errorw("could not delete link", "error", err)
+		log.Error().Err(err).Msg("could not delete link")
 		sendJSONErrResponse(w, http.StatusBadGateway, err)
 		return
 	}
 
-	zap.S().Infow("deleted link", "id", vars["id"])
+	log.Info().Str("id", vars["id"]).Msg("deleted link")
 	sendJSONResponse(w, http.StatusOK, nil)
 }
 
@@ -122,7 +121,7 @@ func sendJSONResponse(w http.ResponseWriter, httpStatusCode int, payload interfa
 	enc := json.NewEncoder(w)
 	err := enc.Encode(payload)
 	if err != nil {
-		zap.S().Errorw("could not send JSON response", "error", err)
+		log.Error().Err(err).Msg("could not send JSON response")
 	}
 }
 
@@ -133,7 +132,7 @@ func sendJSONErrResponse(w http.ResponseWriter, httpStatusCode int, errStr error
 	enc := json.NewEncoder(w)
 	err := enc.Encode(map[string]string{"err": errStr.Error()})
 	if err != nil {
-		zap.S().Errorw("could not send JSON response", "error", err)
+		log.Error().Err(err).Msg("could not send JSON response")
 	}
 }
 
@@ -142,7 +141,6 @@ func parseJSON(rc io.Reader, object interface{}) error {
 	decoder := json.NewDecoder(rc)
 	err := decoder.Decode(object)
 	if err != nil {
-		log.Println(err)
 		return errors.New("could not parse json")
 	}
 	return nil
