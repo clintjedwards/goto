@@ -1,6 +1,6 @@
-# GoTo: URL Shortner
+# GoTo: URL Shortener
 
-An implementation of https://github.com/kellegous/go. A internal focused URL shortener.
+An implementation of https://github.com/kellegous/go. An internal focused URL shortener.
 
 ```
 go get github.com/clintjedwards/goto
@@ -10,7 +10,7 @@ go get github.com/clintjedwards/goto
 
 To enable functionality such as `go/mylink`, you'll need two pieces of functionality.
 
-1. The application must be be given an A record: Ex. `go.clintjedwards.home`
+1. The application must be given an A record: Ex. `go.clintjedwards.home`
 2. Through DHCP you must set up search domains that include the (example) `clintjedwards.home` domain
 3. Now simply typing `go/{something here}` will take you to your shortened link
 
