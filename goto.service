@@ -1,0 +1,13 @@
+[Unit]
+Description=goto url shortener
+After=network.target
+
+[Service]
+EnvironmentFile=-/etc/default/goto
+KillMode=process
+ExecStart=/usr/local/bin/goto
+User=<User>
+Group=<User>
+
+[Install]
+WantedBy=default.target

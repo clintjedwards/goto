@@ -46,5 +46,6 @@ func main() {
 		ReadTimeout:  15 * time.Second,
 	}
 
-	log.Fatal().Err(http.ListenAndServe(config.Host, server.Handler))
+	log.Info().Str("url", config.Host).Msg("starting http service")
+	log.Fatal().Err(server.ListenAndServe())
 }
