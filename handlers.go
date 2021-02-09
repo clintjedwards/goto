@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/clintjedwards/goto/models"
@@ -60,9 +61,27 @@ func (app *app) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 	sendJSONResponse(w, http.StatusCreated, newLink)
 }
 
+func isReservedCharacter(c rune) bool {
+	reservedChars := map[rune]struct{}{
+		'!': {}, '#': {}, '$': {}, '&': {}, '\'': {}, '(': {},
+		')': {}, '*': {}, '+': {}, ',': {}, '/': {}, ':': {}, ';': {}, '=': {},
+		'?': {}, '@': {}, '[': {}, ']': {},
+	}
+
+	if _, ok := reservedChars[c]; ok {
+		return true
+	}
+
+	return false
+}
+
 func (app *app) followLinkHandler(w http.ResponseWriter, req *http.Request) {
-	vars := mux.Vars(req)
-	link, err := app.storage.GetLink(vars["id"])
+
+	splitURL := strings.FieldsFunc(req.RequestURI[1:], isReservedCharacter)
+	linkID := splitURL[0]
+	queryParams := req.RequestURI[len(linkID)+1:]
+
+	link, err := app.storage.GetLink(linkID)
 	if err != nil {
 		if errors.Is(err, tkerrors.ErrEntityNotFound) {
 			sendJSONErrResponse(w, http.StatusNotFound, err)
@@ -81,7 +100,7 @@ func (app *app) followLinkHandler(w http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
-	http.Redirect(w, req, link.URL, http.StatusMovedPermanently)
+	http.Redirect(w, req, link.URL+queryParams, http.StatusMovedPermanently)
 }
 
 func (app *app) getLinkHandler(w http.ResponseWriter, req *http.Request) {

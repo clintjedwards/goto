@@ -35,7 +35,7 @@ func main() {
 		"POST": http.HandlerFunc(app.createLinkHandler),
 	})
 
-	router.Handle("/{id}", handlers.MethodHandler{
+	router.PathPrefix("/").Handler(handlers.MethodHandler{
 		"GET": http.HandlerFunc(app.followLinkHandler),
 	})
 
