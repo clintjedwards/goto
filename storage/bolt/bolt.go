@@ -98,7 +98,7 @@ func (db *Bolt) GetAllLinks() (map[string]models.Link, error) {
 }
 
 // CreateLink stores a new link into database
-func (db *Bolt) CreateLink(link models.Link) error {
+func (db *Bolt) CreateLink(link *models.Link) error {
 	err := db.store.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(storage.LinksBucket))
 

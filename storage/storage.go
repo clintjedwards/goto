@@ -30,7 +30,7 @@ const (
 type Engine interface {
 	GetAllLinks() (map[string]models.Link, error)
 	GetLink(id string) (models.Link, error)
-	CreateLink(link models.Link) error
+	CreateLink(link *models.Link) error
 	BumpHitCount(id string) error
 	DeleteLink(id string) error
 }

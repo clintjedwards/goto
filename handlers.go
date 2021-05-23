@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/clintjedwards/goto/models"
 	"github.com/clintjedwards/toolkit/tkerrors"
@@ -26,10 +25,9 @@ func (app *app) listLinksHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (app *app) createLinkHandler(w http.ResponseWriter, req *http.Request) {
+	proposedLink := models.CreateLinkRequest{}
 
-	newLink := models.Link{}
-
-	err := parseJSON(req.Body, &newLink)
+	err := parseJSON(req.Body, &proposedLink)
 	if err != nil {
 		log.Warn().Err(err).Msg("could not parse json")
 		sendJSONErrResponse(w, http.StatusBadRequest, err)
@@ -37,15 +35,14 @@ func (app *app) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 	}
 	req.Body.Close()
 
-	err = newLink.Validate(app.config.MaxIDLength, req.Host)
+	err = proposedLink.Validate(app.config.MaxIDLength, req.Host)
 	if err != nil {
 		log.Error().Err(err).Msg("id or url invalid")
 		sendJSONErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	newLink.Created = time.Now().Unix()
-	newLink.Hits = 0
+	newLink := proposedLink.ToLink()
 
 	err = app.storage.CreateLink(newLink)
 	if err != nil {

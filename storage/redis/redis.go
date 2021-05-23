@@ -96,7 +96,7 @@ func (db *Redis) GetAllLinks() (map[string]models.Link, error) {
 }
 
 // CreateLink stores a new link into database
-func (db *Redis) CreateLink(link models.Link) error {
+func (db *Redis) CreateLink(link *models.Link) error {
 
 	encodedLink, err := json.Marshal(link)
 	if err != nil {
