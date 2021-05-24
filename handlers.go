@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	utilErrors "github.com/clintjedwards/goto/errors"
 	"github.com/clintjedwards/goto/models"
-	"github.com/clintjedwards/toolkit/tkerrors"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
 )
@@ -16,12 +16,12 @@ import (
 func (app *app) listLinksHandler(w http.ResponseWriter, req *http.Request) {
 	links, err := app.storage.GetAllLinks()
 	if err != nil {
-		log.Error().Err(err).Msg("error retrieving link ")
-		sendJSONErrResponse(w, http.StatusBadGateway, err)
+		log.Error().Err(err).Msg("error retrieving links")
+		sendErrResponse(w, http.StatusBadGateway, err)
 		return
 	}
 
-	sendJSONResponse(w, http.StatusOK, links)
+	sendResponse(w, http.StatusOK, links)
 }
 
 func (app *app) createLinkHandler(w http.ResponseWriter, req *http.Request) {
@@ -30,7 +30,7 @@ func (app *app) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 	err := parseJSON(req.Body, &proposedLink)
 	if err != nil {
 		log.Warn().Err(err).Msg("could not parse json")
-		sendJSONErrResponse(w, http.StatusBadRequest, err)
+		sendErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 	req.Body.Close()
@@ -38,7 +38,7 @@ func (app *app) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 	err = proposedLink.Validate(app.config.MaxIDLength, req.Host)
 	if err != nil {
 		log.Error().Err(err).Msg("id or url invalid")
-		sendJSONErrResponse(w, http.StatusBadRequest, err)
+		sendErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -46,16 +46,16 @@ func (app *app) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 
 	err = app.storage.CreateLink(newLink)
 	if err != nil {
-		if errors.Is(err, tkerrors.ErrEntityExists) {
-			sendJSONErrResponse(w, http.StatusConflict, err)
+		if errors.Is(err, utilErrors.ErrExists) {
+			sendErrResponse(w, http.StatusConflict, err)
 			return
 		}
-		sendJSONErrResponse(w, http.StatusNotFound, err)
+		sendErrResponse(w, http.StatusNotFound, err)
 		return
 	}
 
 	log.Info().Interface("link", newLink).Msg("created new link")
-	sendJSONResponse(w, http.StatusCreated, newLink)
+	sendResponse(w, http.StatusCreated, newLink)
 }
 
 func isReservedCharacter(c rune) bool {
@@ -80,12 +80,12 @@ func (app *app) followLinkHandler(w http.ResponseWriter, req *http.Request) {
 
 	link, err := app.storage.GetLink(linkID)
 	if err != nil {
-		if errors.Is(err, tkerrors.ErrEntityNotFound) {
-			sendJSONErrResponse(w, http.StatusNotFound, err)
+		if errors.Is(err, utilErrors.ErrNotFound) {
+			sendErrResponse(w, http.StatusNotFound, err)
 			return
 		}
 		log.Error().Err(err).Msg("error retrieving link")
-		sendJSONErrResponse(w, http.StatusBadGateway, err)
+		sendErrResponse(w, http.StatusBadGateway, err)
 		return
 	}
 
@@ -104,16 +104,16 @@ func (app *app) getLinkHandler(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	link, err := app.storage.GetLink(vars["id"])
 	if err != nil {
-		if errors.Is(err, tkerrors.ErrEntityNotFound) {
-			sendJSONErrResponse(w, http.StatusNotFound, err)
+		if errors.Is(err, utilErrors.ErrNotFound) {
+			sendErrResponse(w, http.StatusNotFound, err)
 			return
 		}
 		log.Error().Err(err).Msg("error retrieving link")
-		sendJSONErrResponse(w, http.StatusBadGateway, err)
+		sendErrResponse(w, http.StatusBadGateway, err)
 		return
 	}
 
-	sendJSONResponse(w, http.StatusOK, link)
+	sendResponse(w, http.StatusOK, link)
 }
 
 func (app *app) deleteLinksHandler(w http.ResponseWriter, req *http.Request) {
@@ -122,33 +122,36 @@ func (app *app) deleteLinksHandler(w http.ResponseWriter, req *http.Request) {
 	err := app.storage.DeleteLink(vars["id"])
 	if err != nil {
 		log.Error().Err(err).Msg("could not delete link")
-		sendJSONErrResponse(w, http.StatusBadGateway, err)
+		sendErrResponse(w, http.StatusBadGateway, err)
 		return
 	}
 
 	log.Info().Str("id", vars["id"]).Msg("deleted link")
-	sendJSONResponse(w, http.StatusOK, nil)
+	sendResponse(w, http.StatusOK, nil)
 }
 
-// sendJSONResponse converts raw objects and parameters to a json response and passes it to a provided writer
-func sendJSONResponse(w http.ResponseWriter, httpStatusCode int, payload interface{}) {
+// sendResponse converts raw objects and parameters to a json response
+// and passes it to a provided writer.
+func sendResponse(w http.ResponseWriter, httpStatusCode int, payload interface{}) {
 	w.WriteHeader(httpStatusCode)
 
 	enc := json.NewEncoder(w)
 	err := enc.Encode(payload)
 	if err != nil {
-		log.Error().Err(err).Msg("could not send JSON response")
+		log.Error().Err(err).Msgf("could not encode json response: %v", err)
 	}
 }
 
-// sendJSONErrResponse converts raw objects and parameters to a json response and passes it to a provided writer
-func sendJSONErrResponse(w http.ResponseWriter, httpStatusCode int, errStr error) {
+// sendErrResponse converts raw objects and parameters to a json response specifically for erorrs
+// and passes it to a provided writer. The creation of a separate function for just errors,
+// is due to how they are handled differently from other payload types.
+func sendErrResponse(w http.ResponseWriter, httpStatusCode int, appErr error) {
 	w.WriteHeader(httpStatusCode)
 
 	enc := json.NewEncoder(w)
-	err := enc.Encode(map[string]string{"err": errStr.Error()})
+	err := enc.Encode(map[string]string{"err": appErr.Error()})
 	if err != nil {
-		log.Error().Err(err).Msg("could not send JSON response")
+		log.Error().Err(err).Msgf("could not encode json response: %v", err)
 	}
 }
 

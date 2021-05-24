@@ -41,7 +41,7 @@ type Link struct {
 	URL     string `json:"url"`
 	Created int64  `json:"created"` // epoch time
 	Hits    int64  `json:"hits"`    // number of visits to link
-	Kind    Kind
+	Kind    Kind   `json:"kind"`
 }
 
 func (l CreateLinkRequest) ToLink() *Link {

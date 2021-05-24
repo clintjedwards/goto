@@ -26,3 +26,30 @@ func TestIsFormattedLink(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckValidID(t *testing.T) {
+	tests := map[string]struct {
+		id          string
+		shouldError bool
+	}{
+		"simple": {
+			id:          "jelly",
+			shouldError: false,
+		},
+		"invalid": {
+			id:          "w#eow",
+			shouldError: true,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(_ *testing.T) {
+			err := checkValidID(tc.id)
+			if err != nil && !tc.shouldError {
+				t.Errorf("ID %q is invalid when it should be valid", tc.id)
+			} else if err == nil && tc.shouldError {
+				t.Errorf("ID %q is valid when it should be invalid", tc.id)
+			}
+		})
+	}
+}

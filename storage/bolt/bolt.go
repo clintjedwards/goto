@@ -6,9 +6,9 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/clintjedwards/goto/config"
+	utilErrors "github.com/clintjedwards/goto/errors"
 	"github.com/clintjedwards/goto/models"
 	"github.com/clintjedwards/goto/storage"
-	"github.com/clintjedwards/toolkit/tkerrors"
 	"github.com/rs/zerolog/log"
 )
 
@@ -55,7 +55,7 @@ func (db *Bolt) GetLink(id string) (models.Link, error) {
 
 		linkRaw := linksBucket.Get([]byte(id))
 		if linkRaw == nil {
-			return tkerrors.ErrEntityNotFound
+			return utilErrors.ErrNotFound
 		}
 
 		err := json.Unmarshal(linkRaw, &storedLink)
@@ -77,7 +77,7 @@ func (db *Bolt) GetAllLinks() (map[string]models.Link, error) {
 
 	results := map[string]models.Link{}
 
-	db.store.View(func(tx *bolt.Tx) error {
+	err := db.store.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(storage.LinksBucket))
 
 		err := bucket.ForEach(func(key, value []byte) error {
@@ -93,6 +93,9 @@ func (db *Bolt) GetAllLinks() (map[string]models.Link, error) {
 		})
 		return err
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	return results, nil
 }
@@ -104,7 +107,7 @@ func (db *Bolt) CreateLink(link *models.Link) error {
 
 		exists := bucket.Get([]byte(link.ID))
 		if exists != nil {
-			return tkerrors.ErrEntityExists
+			return utilErrors.ErrExists
 		}
 
 		encodedLink, err := json.Marshal(link)
@@ -135,7 +138,7 @@ func (db *Bolt) BumpHitCount(id string) error {
 
 		linkRaw := bucket.Get([]byte(id))
 		if linkRaw == nil {
-			return tkerrors.ErrEntityNotFound
+			return utilErrors.ErrNotFound
 		}
 
 		err := json.Unmarshal(linkRaw, &storedLink)
