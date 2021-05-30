@@ -73,10 +73,8 @@ func isReservedCharacter(c rune) bool {
 }
 
 func (app *app) followLinkHandler(w http.ResponseWriter, req *http.Request) {
-
 	splitURL := strings.FieldsFunc(req.RequestURI[1:], isReservedCharacter)
 	linkID := splitURL[0]
-	queryParams := req.RequestURI[len(linkID)+1:]
 
 	link, err := app.storage.GetLink(linkID)
 	if err != nil {
@@ -89,6 +87,14 @@ func (app *app) followLinkHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	returnedLink := ""
+
+	if link.Kind == models.Formatted {
+		returnedLink = generateFormattedLink(req.RequestURI[1:], link.URL)
+	} else {
+		returnedLink = link.URL + req.RequestURI[len(linkID)+1:]
+	}
+
 	// We wrap this so we can spit out the error to logs
 	go func() {
 		err := app.storage.BumpHitCount(link.ID)
@@ -97,7 +103,15 @@ func (app *app) followLinkHandler(w http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
-	http.Redirect(w, req, link.URL+queryParams, http.StatusMovedPermanently)
+	http.Redirect(w, req, returnedLink, http.StatusMovedPermanently)
+}
+
+func generateFormattedLink(input string, link string) string {
+	splitInput := strings.Split(input, "/")
+	for _, section := range splitInput[1:] {
+		link = strings.Replace(link, "{}", section, 1)
+	}
+	return link
 }
 
 func (app *app) getLinkHandler(w http.ResponseWriter, req *http.Request) {
