@@ -27,12 +27,19 @@ To enable functionality such as `go/mylink`, you'll need two pieces of functiona
 
 Examples use [httpie](https://httpie.org/)
 
-```
-http POST localhost:8080/create url=https://yahoo.com id=test
-http GET localhost:8080/links
-http GET localhost:8080/test
-http GET localhost:8080/links/test
-http DELETE localhost:8080/links/test
+```golang
+// Normal links work just how you expect
+http POST localhost:8080/create url="https://github.com" id="github" // normal link
+http GET localhost:8080/github                                       // Use ID to redirect to full URL
+http GET localhost:8080/github?tab=repositories                      // query params are passed to the full URL
+
+// Formatted links allow you to substitute variables that might be in the middle of a link
+http POST localhost:8080/create url="https://github.com/clintjedwards/{}/issues" id="github"
+http GET localhost:8080/github/release  // Returns a link to: https://github.com/clintjedwards/release/issues
+
+http GET localhost:8080/links           // View all links
+http GET localhost:8080/links/test      // View specific link details
+http DELETE localhost:8080/links/test   // Remove a link
 ```
 
 ### Reserved links
