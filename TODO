@@ -1,0 +1,3 @@
+- Add auto link expiry for number of hits or time.
+- Allow users to edit links but keep the history of what the link was previously and enable the user to see this history.
+- Add more logging!

@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (app *app) listLinksHandler(w http.ResponseWriter, req *http.Request) {
+func (app *app) listLinksHandler(w http.ResponseWriter, _ *http.Request) {
 	links, err := app.storage.GetAllLinks()
 	if err != nil {
 		log.Error().Err(err).Msg("error retrieving links")

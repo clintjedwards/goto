@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-
 	config, err := config.FromEnv()
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not load env config")
@@ -47,5 +46,5 @@ func main() {
 	}
 
 	log.Info().Str("url", config.Host).Msg("starting http service")
-	log.Fatal().Err(server.ListenAndServe())
+	log.Fatal().Err(server.ListenAndServe()).Msg("http service failed unexpectedly")
 }
